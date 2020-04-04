@@ -131,18 +131,26 @@ def create_summoners(summoner_names: list):
                 )
 
 
-def create_summoner(summoner_name: str):
+def create_summoner(summoner_name: str, summoner_data_only=False):
     riot_token = str(tokens["riot_token"])
     watcher = RiotWatcher(riot_token)
     with ThreadPoolExecutor() as executor:
-        future = executor.submit(fetch_summoner, summoner_name, watcher)
-        data = future.result()
-        return Summoner(
-            summoner_name,
-            data_summoner=data[0],
-            data_mastery=data[1],
-            data_league=data[2]
-            )
+        if is not summoner_data_only:
+            future = executor.submit(fetch_summoner, summoner_name, watcher)
+            data = future.result()
+            return Summoner(
+                summoner_name,
+                data_summoner=data[0],
+                data_mastery=data[1],
+                data_league=data[2]
+                )
+        else:
+            future = executor.submit(fetch_summoner_data_only, summoner_name, watcher)
+            data = future.result()
+            return Summoner(
+                summoner_name,
+                data_summoner=data[0]
+                )
 
 
 def fetch_summoner(player, watcher):
@@ -155,6 +163,15 @@ def fetch_summoner(player, watcher):
     except HTTPError as e:
         print(e)
     return [data_summoner, data_mastery, data_league]
+
+def fetch_summoner_data_only(player, watcher):
+    region = consts.RIOT_REGION
+    try:
+        data_summoner = watcher.summoner.by_name(region, player)
+    except HTTPError as e:
+        print(e)
+    return [data_summoner]
+
 
 
 def is_in_need_of_update(summoner):

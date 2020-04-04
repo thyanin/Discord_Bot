@@ -189,7 +189,64 @@ def test_matplotlib():
 
     plt.savefig(f'./{consts.FOLDER_CHAMP_SPLICED}/leaderboard.png')
 
-    
+"""
+Get clash team op.gg and bans by just entering one name
+Process:
+1. Get summoner by Summoner Name
+2. Get Clash team_id by Summoner Id
+3. Get Clash players by teamID
+4. Get Summoner Names by Players SummonerId
+5. Create op.gg Link for summoner names
+
+=> 7 API calls per team => ok
+
+"""
+
+def load_json(file_name, folder='config'):
+    with open(f'./{folder}/{file_name}.json', encoding="utf8") as all_data:
+        return json.load(all_data)
+
+def get_riot_watcher():
+    tokens = load_json("bot")
+    return RiotWatcher(str(tokens["riot_token"]))
+
+
+def get_clash_by_summoner_id(summoner_id):
+    return get_riot_watcher().clash.by_summoner_id(consts.RIOT_REGION, summoner_id)
+
+
+def get_clash_by_team_id(team_id):
+    return get_riot_watcher().clash.by_team_id(consts.RIOT_REGION, team_id)
+
+
+def get_summoner_ids_by_player_list(player_list):
+    summoner_id_list = []
+    for player in player_list:
+        summoner_id_list.append(player.summonerId)
+    return summoner_id_list
+
+
+def get_summoner_name_by_summoner_id(summoner_id):
+    summoner_data = get_riot_watcher().summoner.by_id(consts.RIOT_REGION, summoner_id)
+    return summoner_data['name']
+
+
+def get_clash_team_opgg_by_summoner_name(summoner_name):
+    summoner = utility.create_summoner(summoner_name, summoner_data_only=True)
+    team_id = get_clash_by_summoner_id(summoner.data_summoner['id'])['teamId']
+    player_list = get_clash_by_team_id(team_id)['players']
+    summoner_id_list = get_summoner_ids_by_player_list(player_list)
+    op_url = 'https://euw.op.gg/multi/query='
+    return_text = ''
+    name_list = []
+    for i in range(0, len(summoner_id_list)):
+        name = get_summoner_name_by_summoner_id(summoner_id_list[i])
+        name_list.append(name)
+        op_url += f'{name}%2C' 
+        return_text += f'Summoner: {name}, Position: {player_list[i].position}\n'
+    return_text += f'\n{op_url[:-3]}'
+    return return_text, name_list
+
 
 
 # === INTERFACE END === #
